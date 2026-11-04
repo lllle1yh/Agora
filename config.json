@@ -1,0 +1,43 @@
+{
+  "host": "127.0.0.1",
+  "port": 8780,
+  "tmux_session": "arch",
+  "roles": [
+    {
+      "id": "role-01",
+      "name": "支持派",
+      "short": "Support",
+      "stance": "推进这个方向，给出可执行方案",
+      "goal": "把方案做实",
+      "color": "#39e6b0",
+      "evaluator": false
+    },
+    {
+      "id": "role-02",
+      "name": "反方",
+      "short": "Critic",
+      "stance": "找出方案的漏洞和不可行点",
+      "goal": "防止过度设计",
+      "color": "#ff6b7a",
+      "evaluator": false
+    },
+    {
+      "id": "role-03",
+      "name": "工程派",
+      "short": "Engineer",
+      "stance": "只关心能不能落地",
+      "goal": "给出最小实现路径",
+      "color": "#6ea8ff",
+      "evaluator": false
+    },
+    {
+      "id": "role-04",
+      "name": "评估者",
+      "short": "Evaluator",
+      "stance": "判断方案是否值得推进",
+      "goal": "投票 yes / no / blocked",
+      "color": "#f6e05e",
+      "evaluator": true
+    }
+  ]
+}

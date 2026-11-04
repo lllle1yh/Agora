@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agora · 自讨论迭代平台</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div>
+        <h1>Agora</h1>
+        <p>通用自讨论迭代平台 · 动态角色 · 模型可配 · 旁路对话</p>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span id="role-count">0 角色</span>
+      <span id="message-count">0 消息</span>
+      <span id="eval-state" class="badge">空闲</span>
+      <button type="button" id="new-btn" class="btn small">新建 / 设置</button>
+      <button type="button" id="archive-btn" class="btn small ghost">归档</button>
+      <button type="button" id="export-btn" class="btn small ghost">导出</button>
+      <button type="button" id="pause-btn" class="btn small">暂停</button>
+      <button type="button" id="stop-btn" class="btn small danger">停止</button>
+    </div>
+  </header>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="side-head">
+        <span>讨论角色</span>
+        <span id="topic-mini" class="muted"></span>
+      </div>
+      <div id="roles" class="roles"></div>
+      <div class="side-head history-head">历史讨论</div>
+      <div id="history" class="history"></div>
+      <div class="side-note">
+        角色输出来自 tmux pane；讨论流来自消息总线。<br>
+        归档会把当前 discussions / decisions / proposals 等完整复制到 <code>archive/</code>。
+      </div>
+    </aside>
+
+    <section class="center">
+      <nav class="tabs">
+        <button type="button" data-tab="feed" class="tab active">讨论流</button>
+        <button type="button" data-tab="roles" class="tab">角色面板</button>
+        <button type="button" data-tab="files" class="tab">提案 / 文件 / 归档</button>
+      </nav>
+
+      <div id="tab-feed" class="tab-panel active">
+        <div id="feed" class="feed"></div>
+        <form id="composer" class="composer">
+          <textarea id="message" rows="2" placeholder="主持人发言（Ctrl+Enter 发送）"></textarea>
+          <button type="submit" class="btn primary">发送</button>
+        </form>
+      </div>
+
+      <div id="tab-roles" class="tab-panel">
+        <div id="role-grid" class="role-grid"></div>
+      </div>
+
+      <div id="tab-files" class="tab-panel">
+        <div class="files-layout">
+          <div id="files" class="files"></div>
+          <pre id="file-preview" class="file-preview">选择左侧文件查看内容。</pre>
+        </div>
+      </div>
+    </section>
+
+    <aside class="detail">
+      <div class="right-tabs">
+        <button type="button" data-rtab="pane" class="rtab active">角色输出</button>
+        <button type="button" data-rtab="side" class="rtab">旁路对话</button>
+      </div>
+
+      <div id="rtab-pane" class="rtab-panel active">
+        <div class="detail-head">
+          <div>
+            <h2 id="detail-name">角色输出</h2>
+            <p id="detail-status" class="muted">选择角色</p>
+          </div>
+          <span id="detail-badge" class="badge">—</span>
+        </div>
+        <pre id="detail-pane" class="pane">等待角色输出…</pre>
+      </div>
+
+      <div id="rtab-side" class="rtab-panel">
+        <div class="detail-head">
+          <div>
+            <h2>旁路对话</h2>
+            <p class="muted">不进入主讨论；可用来总结、质疑或让顾问给建议</p>
+          </div>
+        </div>
+        <div id="sidechat" class="sidechat"></div>
+        <form id="side-form" class="composer">
+          <textarea id="side-input" rows="2" placeholder="问旁路顾问（Ctrl+Enter 发送）"></textarea>
+          <button type="submit" class="btn primary">发送</button>
+        </form>
+      </div>
+    </aside>
+  </main>
+
+  <div id="archive-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="archive-title">历史讨论</h2>
+          <p id="archive-meta" class="muted"></p>
+        </div>
+        <button type="button" id="archive-close" class="btn small ghost">关闭</button>
+      </div>
+      <div id="archive-body" class="archive-body"></div>
+    </div>
+  </div>
+
+  <div id="setup-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2>新建讨论</h2>
+          <p class="muted">输入主题，调用模型生成角色；也可以手动编辑角色。</p>
+        </div>
+        <button type="button" id="setup-close" class="btn small ghost">关闭</button>
+      </div>
+
+      <label>
+        <span>讨论主题</span>
+        <textarea id="setup-topic" rows="3" placeholder="一句话主题，例如：讨论分层黑板 Leader-Worker-Subagent 架构"></textarea>
+      </label>
+      <label>
+        <span>背景资料（可选，可拖文件）</span>
+        <textarea id="setup-background" rows="6" placeholder="粘贴文档、约束、已有结论；也可以把 .md/.txt/.json 文件拖到下面"></textarea>
+      </label>
+      <div id="drop-zone" class="drop-zone">把 .md / .txt / .json 文件拖到这里，内容会追加到背景资料</div>
+      <div class="inline-row">
+        <label class="btn small file-pick">选择文件
+          <input id="background-file" type="file" multiple accept=".md,.txt,.json,.jsonl" hidden>
+        </label>
+        <span id="background-status" class="muted">背景资料为空</span>
+      </div>
+
+      <fieldset>
+        <legend>模型配置</legend>
+        <div class="grid-2">
+          <label>
+            <span>Provider</span>
+            <select id="setup-provider">
+              <option value="openai">OpenAI-compatible</option>
+              <option value="anthropic">Anthropic-compatible</option>
+            </select>
+          </label>
+          <label>
+            <span>模型</span>
+            <input id="setup-model" type="text" placeholder="例如 deepseek-chat">
+          </label>
+        </div>
+        <label>
+          <span>API Base URL</span>
+          <input id="setup-base-url" type="url" placeholder="https://api.example.com 或 .../v1">
+        </label>
+        <label>
+          <span>API Key</span>
+          <input id="setup-api-key" type="password" placeholder="留空则沿用已保存的 key">
+        </label>
+        <div class="inline-row">
+          <button type="button" id="test-model-btn" class="btn small">测试连接</button>
+          <span id="test-model-result" class="muted">尚未测试</span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <div class="fieldset-head">
+          <legend>角色与评估者</legend>
+          <div class="inline-row">
+            <label class="count-label">讨论角色 <input id="setup-role-count" type="number" min="1" max="12" value="6" class="count-input"></label>
+            <label class="count-label">评估者 <input id="setup-evaluator-count" type="number" min="0" max="6" value="2" class="count-input"></label>
+            <button type="button" id="generate-roles-btn" class="btn small">调用模型生成</button>
+            <button type="button" id="add-role-btn" class="btn small ghost">+ 讨论角色</button>
+            <button type="button" id="add-evaluator-btn" class="btn small ghost">+ 评估者</button>
+          </div>
+        </div>
+        <div class="editor-split">
+          <div class="editor-column">
+            <h4>讨论角色</h4>
+            <div id="role-editor" class="role-editor"></div>
+          </div>
+          <div class="editor-column">
+            <h4>独立评估者</h4>
+            <div id="evaluator-editor" class="role-editor"></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="modal-actions">
+        <button type="button" id="save-config-btn" class="btn">保存配置</button>
+        <button type="button" id="start-discussion-btn" class="btn primary">应用并启动</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

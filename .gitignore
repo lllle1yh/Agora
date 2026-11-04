@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+data/
+discussions/
+archive/
+proposals/
+evaluation/
+final/
+subagents/
+decisions/
+topic.md
+background.md
+*.log
